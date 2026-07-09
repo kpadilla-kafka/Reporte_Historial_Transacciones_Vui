@@ -4,9 +4,14 @@
 
   Descripción:
       Inserta el catálogo de trámites de la Ventanilla Única de Inversión (VUI),
-      asociando cada trámite al bloque correspondiente. La inserción se realiza
-      únicamente cuando el registro no existe, garantizando la integridad del
-      catálogo y permitiendo la ejecución segura del script en múltiples ocasiones.
+      asociando cada trámite al bloque correspondiente.
+
+  Historial de cambios:
+  --------------------------------------------------------------------------------
+  Fecha       Autor               Descripción
+  ----------  ------------------  -----------------------------------------------
+  2026-07-09  Katiana Padilla     Creación inicial del catálogo de trámites.
+  --------------------------------------------------------------------------------
 
   Ambiente:
       Desarrollo
@@ -14,12 +19,9 @@
   Consideraciones:
       - No ejecutar en Producción.
       - Inserta datos únicamente si no existen.
-      - Los trámites se asocian mediante la llave foránea VUI_Bloque.
-      - La FechaHabilitacion se inicializa en NULL y será definida cuando se
-        disponga de la información oficial.
-      - Los registros se crean con Activo = 1 (valor por defecto).
-      - El catálogo corresponde a los trámites definidos para el Dashboard
-        Gobernanza - Reporte 3.
+      - Los trámites se relacionan mediante VUI_Bloque.
+      - FechaHabilitacion se inicializa en NULL.
+      - Activo se establece mediante el valor por defecto (1).
 ==============================================================================*/
 
 USE [VUI_TransaccionesDB];
