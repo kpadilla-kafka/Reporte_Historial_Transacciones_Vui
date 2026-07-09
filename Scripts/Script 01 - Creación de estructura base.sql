@@ -17,6 +17,18 @@ GO
       - Se utilizan PK BIGINT IDENTITY.
       - Se utilizan FK para integridad referencial.
       - Se incluye Activo BIT para borrado lógico.
+ 
+  Estado:
+✔ Finalizado
+
+Incluye:
+
+• Creación de tablas
+• Llaves primarias
+• Llaves foráneas
+• Integridad referencial
+• Campos Activo para borrado lógico
+• Campo FechaHabilitacion para soporte del indicador ST
 ==============================================================================*/
 
 SET NOCOUNT ON;
