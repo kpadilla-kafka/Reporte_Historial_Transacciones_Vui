@@ -60,8 +60,8 @@ GO
 
 CREATE OR ALTER PROCEDURE dbo.sp_DashboardGobernanza_Reporte3
 (
-    @FechaInicio DATE,
-    @FechaFin DATE,
+    @FechaInicio DATE = NULL,
+    @FechaFin DATE = NULL,
     @Bloque NVARCHAR(255) = NULL,
     @Tramite NVARCHAR(255) = NULL
 )
