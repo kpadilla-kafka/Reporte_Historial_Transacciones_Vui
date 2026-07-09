@@ -27,6 +27,29 @@ GO
      @Tramite     : Nombre del trámite a consultar. Si es NULL o 'Todos',
                     consulta todos los trámites.
 
+ Resultado:
+     El procedimiento devuelve una matriz con la siguiente estructura:
+
+        Consecutivo
+        OrdenBloque
+        Bloque
+        OrdenTramite
+        Tramite
+        Anio
+        ENE
+        FEB
+        MAR
+        ABR
+        MAY
+        JUN
+        JUL
+        AGO
+        SEP
+        OCT
+        NOV
+        DIC
+        Cantidad
+
  Historial de cambios:
  ------------------------------------------------------------------------------
  Fecha        Autor               Descripción
