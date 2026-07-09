@@ -1,0 +1,152 @@
+/*==============================================================================
+  Proyecto: Dashboard Gobernanza - Reporte 3
+  Script: 03_Insertar_Catalogo_Tramites.sql
+
+  Descripción:
+      Inserta el catálogo de trámites de la Ventanilla Única de Inversión (VUI),
+      asociando cada trámite al bloque correspondiente. La inserción se realiza
+      únicamente cuando el registro no existe, garantizando la integridad del
+      catálogo y permitiendo la ejecución segura del script en múltiples ocasiones.
+
+  Ambiente:
+      Desarrollo
+
+  Consideraciones:
+      - No ejecutar en Producción.
+      - Inserta datos únicamente si no existen.
+      - Los trámites se asocian mediante la llave foránea VUI_Bloque.
+      - La FechaHabilitacion se inicializa en NULL y será definida cuando se
+        disponga de la información oficial.
+      - Los registros se crean con Activo = 1 (valor por defecto).
+      - El catálogo corresponde a los trámites definidos para el Dashboard
+        Gobernanza - Reporte 3.
+==============================================================================*/
+
+USE [VUI_TransaccionesDB];
+GO
+
+SET NOCOUNT ON;
+SET XACT_ABORT ON;
+
+BEGIN TRY
+    BEGIN TRANSACTION;
+
+    CREATE TABLE #TramitesCatalogo
+    (
+        Bloque NVARCHAR(255),
+        Tramite NVARCHAR(255)
+    );
+
+    INSERT INTO #TramitesCatalogo (Bloque, Tramite)
+    VALUES
+    -- Trámites previos a Apertura de Empresa
+    (N'Trámites previos a Apertura de Empresa', N'Calderas (Versión 1)'),
+    (N'Trámites previos a Apertura de Empresa', N'Calderas Operación'),
+    (N'Trámites previos a Apertura de Empresa', N'Calderas Instalación'),
+    (N'Trámites previos a Apertura de Empresa', N'Calderas Inspección Anual'),
+    (N'Trámites previos a Apertura de Empresa', N'Calderas Renovación'),
+    (N'Trámites previos a Apertura de Empresa', N'Calderas Modificación'),
+    (N'Trámites previos a Apertura de Empresa', N'Calderas Cancelación'),
+    (N'Trámites previos a Apertura de Empresa', N'Sistema de Tratamiento de Aguas Residuales'),
+    (N'Trámites previos a Apertura de Empresa', N'Sistema de Tratamiento de Aguas Residuales Renovación'),
+    (N'Trámites previos a Apertura de Empresa', N'Sistema de Tratamiento de Aguas Residuales Modificación'),
+    (N'Trámites previos a Apertura de Empresa', N'Tanques de Autoconsumo'),
+    (N'Trámites previos a Apertura de Empresa', N'Tanques de Autoconsumo Renovación'),
+    (N'Trámites previos a Apertura de Empresa', N'Tanques de Autoconsumo Modificación'),
+    (N'Trámites previos a Apertura de Empresa', N'Tanques de Autoconsumo Cancelación'),
+
+    -- Trámites Apertura de Empresa
+    (N'Trámites Apertura de Empresa', N'Apertura de Empresa'),
+
+    -- Trámites Zonas Francas
+    (N'Trámites Zonas Francas', N'Zonas Francas'),
+    (N'Trámites Zonas Francas', N'Dependientes'),
+    (N'Trámites Zonas Francas', N'Ejecutivos'),
+    (N'Trámites Zonas Francas', N'Estancias'),
+
+    -- Trámites Atracción de Inversión
+    (N'Trámites Atracción de Inversión', N'Proyecto de Inversión Fílmica y Audiovisual'),
+
+    -- Trámites Ambientales
+    (N'Trámites Ambientales', N'Permiso de vertido'),
+    (N'Trámites Ambientales', N'Perforación de pozos'),
+    (N'Trámites Ambientales', N'Concesión aguas subterráneas'),
+    (N'Trámites Ambientales', N'Concesión aguas superficiales'),
+    (N'Trámites Ambientales', N'Presentación Estaciones de Servicio'),
+    (N'Trámites Ambientales', N'D1'),
+    (N'Trámites Ambientales', N'D1-Torres'),
+    (N'Trámites Ambientales', N'D1-C'),
+    (N'Trámites Ambientales', N'D1-Desalinización DJ'),
+    (N'Trámites Ambientales', N'D1-Desalinización P-PGA'),
+    (N'Trámites Ambientales', N'D1-Desalinización EIA'),
+    (N'Trámites Ambientales', N'D4-Forestal'),
+    (N'Trámites Ambientales', N'D6-Cuadrante urbano'),
+
+    -- Trámites Institucionales
+    (N'Trámites Institucionales', N'Humedales'),
+    (N'Trámites Institucionales', N'Firmas DJ'),
+    (N'Trámites Institucionales', N'Gestión Aprobaciones'),
+    (N'Trámites Institucionales', N'Inspecciones AFPA'),
+    (N'Trámites Institucionales', N'Planes Reguladores'),
+
+    -- Trámites Registros
+    (N'Trámites Registros', N'IAGT'),
+    (N'Trámites Registros', N'MINSA-MAG'),
+    (N'Trámites Registros', N'Fichas de Emergencia'),
+
+    -- Trámites Construcción
+    (N'Trámites Construcción', N'APC'),
+    (N'Trámites Construcción', N'APC-M'),
+    (N'Trámites Construcción', N'APC-R'),
+    (N'Trámites Construcción', N'APT');
+
+    INSERT INTO dbo.VUI_Tramite
+    (
+        VUI_Bloque,
+        Nombre,
+        FechaHabilitacion
+    )
+    SELECT
+        B.VUI_Bloque,
+        T.Tramite,
+        NULL
+    FROM #TramitesCatalogo T
+    INNER JOIN dbo.VUI_Bloque B
+        ON B.Nombre = T.Bloque
+    WHERE NOT EXISTS
+    (
+        SELECT 1
+        FROM dbo.VUI_Tramite VT
+        WHERE VT.VUI_Bloque = B.VUI_Bloque
+          AND VT.Nombre = T.Tramite
+    );
+
+    DROP TABLE #TramitesCatalogo;
+
+    COMMIT TRANSACTION;
+
+    SELECT 'ÉXITO: Catálogo de trámites insertado o ya existente correctamente.' AS Resultado;
+END TRY
+BEGIN CATCH
+    IF @@TRANCOUNT > 0
+        ROLLBACK TRANSACTION;
+
+    SELECT
+        ERROR_NUMBER() AS ErrorNumero,
+        ERROR_MESSAGE() AS ErrorMensaje,
+        'ABORTO SEGURO: No se consolidaron cambios incompletos.' AS Estado;
+END CATCH;
+GO
+
+SELECT
+    B.Nombre AS Bloque,
+    T.VUI_Tramite,
+    T.Nombre AS Tramite,
+    T.FechaHabilitacion,
+    T.Activo
+FROM dbo.VUI_Tramite T
+INNER JOIN dbo.VUI_Bloque B
+    ON B.VUI_Bloque = T.VUI_Bloque
+ORDER BY
+    B.VUI_Bloque,
+    T.VUI_Tramite;
