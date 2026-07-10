@@ -1,10 +1,9 @@
-USE [VUI_TransaccionesDB];
+USE [VUI_TransaccionesDB]
 GO
-
-SET ANSI_NULLS ON;
+/****** Object:  StoredProcedure [dbo].[sp_DashboardGobernanza_Reporte3]    Script Date: 7/10/2026 12:47:15 PM ******/
+SET ANSI_NULLS ON
 GO
-
-SET QUOTED_IDENTIFIER ON;
+SET QUOTED_IDENTIFIER ON
 GO
 
 /******************************************************************************
@@ -84,7 +83,7 @@ GO
  ------------------------------------------------------------------------------
 ******************************************************************************/
 
-ALTER PROCEDURE dbo.sp_DashboardGobernanza_Reporte3
+ALTER PROCEDURE [dbo].[sp_DashboardGobernanza_Reporte3]
 (
     @FechaInicio DATE = NULL,
     @FechaFin    DATE = NULL,
@@ -315,12 +314,6 @@ BEGIN
     ===========================================================*/
 
     SELECT
-        ROW_NUMBER() OVER
-        (
-            PARTITION BY Bloque, Tramite
-            ORDER BY Anio
-        ) AS Consecutivo,
-
         OrdenBloque,
         Bloque,
         OrdenTramite,
@@ -354,4 +347,3 @@ BEGIN
         Anio
     OPTION (MAXRECURSION 0);
 END;
-GO
