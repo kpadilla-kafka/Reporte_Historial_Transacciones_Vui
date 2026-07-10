@@ -49,8 +49,7 @@ GO
          Si recibe NULL o una cadena vacía, consulta todos los trámites.
 
  Resultado:
-
-     Consecutivo
+ 
      OrdenBloque
      Bloque
      OrdenTramite
