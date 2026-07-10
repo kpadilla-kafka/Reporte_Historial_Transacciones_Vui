@@ -19,25 +19,38 @@ GO
 
      El procedimiento muestra:
         - "ST" para períodos anteriores a la fecha de habilitación del trámite.
-        - "0" cuando el trámite estaba habilitado pero no tuvo transacciones.
-        - La cantidad correspondiente cuando existen registros.
+        - "0" cuando el trámite estaba habilitado pero no registró transacciones.
+        - La cantidad correspondiente cuando existen transacciones.
 
      Los parámetros Bloque y Trámite permiten recibir múltiples valores
-     separados por el carácter "|" para su consumo desde SQL Server Reporting
-     Services (SSRS).
+     separados por el carácter "|" para su consumo desde SQL Server
+     Reporting Services (SSRS).
 
  Ambiente:
      Desarrollo
 
  Parámetros:
-     @FechaInicio : Fecha inicial obligatoria del rango a consultar.
-     @FechaFin    : Fecha final obligatoria del rango a consultar.
-     @Bloque      : Uno o varios nombres de bloque separados por "|".
-                    Si recibe NULL o una cadena vacía, consulta todos.
-     @Tramite     : Uno o varios nombres de trámite separados por "|".
-                    Si recibe NULL o una cadena vacía, consulta todos.
+
+     @FechaInicio
+         Fecha inicial del rango a consultar.
+         Si @FechaInicio y @FechaFin se reciben en NULL, el procedimiento
+         consulta automáticamente todo el histórico disponible.
+
+     @FechaFin
+         Fecha final del rango a consultar.
+         Si @FechaInicio y @FechaFin se reciben en NULL, el procedimiento
+         consulta automáticamente todo el histórico disponible.
+
+     @Bloque
+         Uno o varios nombres de bloque separados por "|".
+         Si recibe NULL o una cadena vacía, consulta todos los bloques.
+
+     @Tramite
+         Uno o varios nombres de trámite separados por "|".
+         Si recibe NULL o una cadena vacía, consulta todos los trámites.
 
  Resultado:
+
      Consecutivo
      OrdenBloque
      Bloque
@@ -62,18 +75,21 @@ GO
  ------------------------------------------------------------------------------
  Fecha        Autor               Descripción
  ----------  ------------------  -----------------------------------------------
- 2026-07-09  Katiana Padilla     Creación inicial del procedimiento.
+ 2026-07-09  Katiana Padilla     Versión 1.0: creación inicial del
+                                 procedimiento.
  2026-07-10  Katiana Padilla     Versión 2.0: soporte para selección múltiple
                                  de bloques y trámites desde SSRS.
+ 2026-07-10  Katiana Padilla     Versión 2.1: soporte para consulta completa
+                                 cuando ambas fechas se reciben en NULL.
  ------------------------------------------------------------------------------
 ******************************************************************************/
 
-ALTER PROCEDURE [dbo].[sp_DashboardGobernanza_Reporte3]
+ALTER PROCEDURE dbo.sp_DashboardGobernanza_Reporte3
 (
     @FechaInicio DATE = NULL,
-    @FechaFin DATE = NULL,
-    @Bloque NVARCHAR(MAX) = NULL,
-    @Tramite NVARCHAR(MAX) = NULL
+    @FechaFin    DATE = NULL,
+    @Bloque      NVARCHAR(MAX) = NULL,
+    @Tramite     NVARCHAR(MAX) = NULL
 )
 AS
 BEGIN
@@ -81,22 +97,51 @@ BEGIN
     SET XACT_ABORT ON;
 
     /*===========================================================
-      1. Validación de parámetros obligatorios
+      1. Validación y normalización de fechas
     ===========================================================*/
+
     IF @FechaInicio IS NULL
+       AND @FechaFin IS NOT NULL
     BEGIN
         RAISERROR(
-            'La fecha inicial es obligatoria.',
+            'Debe indicar la fecha inicial cuando se proporciona la fecha final.',
             16,
             1
         );
         RETURN;
     END;
 
-    IF @FechaFin IS NULL
+    IF @FechaInicio IS NOT NULL
+       AND @FechaFin IS NULL
     BEGIN
         RAISERROR(
-            'La fecha final es obligatoria.',
+            'Debe indicar la fecha final cuando se proporciona la fecha inicial.',
+            16,
+            1
+        );
+        RETURN;
+    END;
+
+    IF @FechaInicio IS NULL
+       AND @FechaFin IS NULL
+    BEGIN
+        SELECT
+            @FechaInicio = DATEFROMPARTS
+            (
+                YEAR(MIN(FechaTransaccion)),
+                MONTH(MIN(FechaTransaccion)),
+                1
+            ),
+            @FechaFin = EOMONTH(MAX(FechaTransaccion))
+        FROM dbo.VUI_Transaccion
+        WHERE Activo = 1;
+    END;
+
+    IF @FechaInicio IS NULL
+       OR @FechaFin IS NULL
+    BEGIN
+        RAISERROR(
+            'No existen transacciones activas para determinar el rango de fechas.',
             16,
             1
         );
@@ -122,12 +167,14 @@ BEGIN
 
          Una cadena vacía se interpreta como ausencia de filtro.
     ===========================================================*/
+
     SET @Bloque = NULLIF(LTRIM(RTRIM(@Bloque)), N'');
     SET @Tramite = NULLIF(LTRIM(RTRIM(@Tramite)), N'');
 
     /*===========================================================
       3. Generación del rango mensual
     ===========================================================*/
+
     ;WITH Meses AS
     (
         SELECT
@@ -158,6 +205,7 @@ BEGIN
          Cruza los trámites activos con todos los meses del rango
          seleccionado y aplica los filtros multivalor.
     ===========================================================*/
+
     Base AS
     (
         SELECT
@@ -182,7 +230,6 @@ BEGIN
           AND
           (
               @Bloque IS NULL
-
               OR EXISTS
               (
                   SELECT 1
@@ -195,7 +242,6 @@ BEGIN
           AND
           (
               @Tramite IS NULL
-
               OR EXISTS
               (
                   SELECT 1
@@ -208,6 +254,7 @@ BEGIN
     /*===========================================================
       5. Conteo real de transacciones por trámite, año y mes
     ===========================================================*/
+
     Conteo AS
     (
         SELECT
@@ -218,8 +265,7 @@ BEGIN
         FROM dbo.VUI_Transaccion TX
         WHERE TX.Activo = 1
           AND TX.FechaTransaccion >= @FechaInicio
-          AND TX.FechaTransaccion <
-              DATEADD(DAY, 1, @FechaFin)
+          AND TX.FechaTransaccion < DATEADD(DAY, 1, @FechaFin)
         GROUP BY
             TX.VUI_Tramite,
             YEAR(TX.FechaTransaccion),
@@ -229,6 +275,7 @@ BEGIN
     /*===========================================================
       6. Aplicación de la regla ST / 0 / Cantidad
     ===========================================================*/
+
     Resultado AS
     (
         SELECT
@@ -243,7 +290,6 @@ BEGIN
                 WHEN B.FechaHabilitacion IS NOT NULL
                  AND B.FinMes < B.FechaHabilitacion
                     THEN N'ST'
-
                 ELSE CAST
                 (
                     ISNULL(C.Cantidad, 0)
@@ -255,7 +301,6 @@ BEGIN
                 WHEN B.FechaHabilitacion IS NOT NULL
                  AND B.FinMes < B.FechaHabilitacion
                     THEN 0
-
                 ELSE ISNULL(C.Cantidad, 0)
             END AS ValorNumerico
         FROM Base B
@@ -268,6 +313,7 @@ BEGIN
     /*===========================================================
       7. Salida final para SSRS
     ===========================================================*/
+
     SELECT
         ROW_NUMBER() OVER
         (
