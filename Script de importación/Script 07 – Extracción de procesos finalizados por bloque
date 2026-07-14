@@ -23,6 +23,8 @@ GO
  Ambientes:
      - Ejecutar y probar inicialmente en AuraPortal_BPMS_DES.
      - Validar cantidades oficiales en AuraPortal_BPMS_PROD.
+
+El mismo patrón servirá para los demás bloques. Lo único que cambia será el listado de trámites (IdClaseProceso).
 ******************************************************************************/
 
 SET NOCOUNT ON;
