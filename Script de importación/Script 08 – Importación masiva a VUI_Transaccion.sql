@@ -8,30 +8,66 @@ GO
  Fecha         : 2026-07-14
  Autor         : Katiana Padilla
 
+ Objetivo:
+     Importar en dbo.VUI_Transaccion los procesos finalizados extraídos
+     mediante el Script 07, homologando la información con los catálogos
+     de la nueva base de datos y garantizando la integridad de la carga.
+
  Descripción:
-     Importa en dbo.VUI_Transaccion los procesos finalizados previamente
-     extraídos mediante el Script 07 y almacenados en la tabla temporal local
-     #ProcesosFinalizados.
+     Este script recibe la información almacenada en la tabla temporal
+     #ProcesosFinalizados, valida su consistencia, homologa los bloques y
+     trámites con los catálogos de VUI_TransaccionesDB e inserta únicamente
+     los registros que aún no existen en la tabla VUI_Transaccion.
 
  Características:
-     - Valida la existencia de tablas y columnas requeridas.
-     - Homologa Bloque + Trámite contra los catálogos de la nueva base.
-     - Valida el estado de destino.
-     - Permite VUI_Solicitante en NULL cuando el origen no lo proporciona.
-     - Evita duplicados usando:
-           Referencia + VUI_Tramite + FechaTransaccion
-     - Es idempotente: puede ejecutarse nuevamente sin duplicar registros.
-     - Ejecuta la carga dentro de una transacción.
-     - Realiza ROLLBACK automático ante errores.
-     - Incluye modo simulación antes del COMMIT definitivo.
+     • Valida la existencia de tablas y columnas requeridas.
+     • Homologa Bloque + Trámite contra los catálogos de la nueva base.
+     • Valida el estado de destino.
+     • Permite VUI_Solicitante en NULL cuando el origen no lo proporciona.
+     • Evita registros duplicados mediante:
+           - VUI_Tramite
+           - Referencia
+           - FechaTransaccion
+     • Es un proceso idempotente, por lo que puede ejecutarse varias veces
+       sin generar duplicados.
+     • Ejecuta la carga dentro de una transacción.
+     • Realiza ROLLBACK automático ante cualquier error.
+     • Incluye un modo simulación previo al COMMIT definitivo.
 
- IMPORTANTE:
-     1. Ejecutar primero el Script 07 en la MISMA sesión de SSMS.
-        La tabla temporal local #ProcesosFinalizados debe seguir disponible.
-     2. Configurar @NombreEstadoDestino según la regla funcional confirmada.
-        IdEstadoOrigen = 1 significa "Terminado", pero no determina por sí solo
-        si el resultado final fue Aprobado, Rechazado o Archivado.
-     3. La primera ejecución debe realizarse con @ConfirmarCarga = 0.
+ Dependencias:
+     • Script 07 - Extracción de procesos finalizados.
+     • Catálogos cargados en VUI_TransaccionesDB
+       (Bloques, Trámites, Estados y Solicitantes).
+     • Tabla destino dbo.VUI_Transaccion.
+
+ Instrucciones de ejecución:
+     1. Ejecutar previamente el Script 07 en la base AuraPortal_BPMS
+        correspondiente (Producción o Desarrollo).
+     2. Sin cerrar la sesión de SQL Server Management Studio, cambiar a la
+        base VUI_TransaccionesDB.
+     3. Configurar el parámetro @NombreEstadoDestino con un estado válido
+        existente en dbo.VUI_Estado.
+     4. Si aplica, configurar @NombreSolicitanteDestino.
+     5. Ejecutar inicialmente con:
+            @ConfirmarCarga = 0
+        para realizar una simulación (ROLLBACK automático).
+     6. Verificar:
+            - Cantidad de registros homologados.
+            - Cantidad de registros nuevos.
+            - Cantidad de registros omitidos.
+            - Resumen de conciliación.
+     7. Si todas las validaciones son satisfactorias, ejecutar nuevamente con:
+            @ConfirmarCarga = 1
+        para confirmar la carga mediante COMMIT.
+
+ Observaciones:
+     • El Script 08 no elimina registros existentes.
+     • La sustitución de datos dummy deberá realizarse mediante el Script 10,
+       una vez finalizada la validación funcional del Reporte 3.
+     • IdEstadoOrigen = 1 representa procesos terminados en AuraPortal, pero
+       el estado funcional que se almacenará en VUI_Estado deberá definirse
+       según las reglas del negocio.
+
 ******************************************************************************/
 
 SET NOCOUNT ON;
